@@ -9,8 +9,8 @@ import (
 
 type User struct {
 	gorm.Model
-	Email    string `gorm:"unique;not null;default:null"`
-	Password string `gorm:"not null;default:null"`
+	Email    string `gorm:"unique;size:255;not null;default:null"`
+	Password string `gorm:"size:255;not null;default:null"`
 }
 
 type UserRequest struct {

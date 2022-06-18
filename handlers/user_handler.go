@@ -75,7 +75,7 @@ func SignUp(c *gin.Context) {
 
 	if err := c.BindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "Email and password required, email must be a valid email",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -92,11 +92,12 @@ func SignUp(c *gin.Context) {
 		response := userAssembler(c, newUser)
 		c.JSON(http.StatusCreated, response)
 		return
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
 	}
-
-	c.JSON(http.StatusBadRequest, gin.H{
-		"message": "email has been already taken",
-	})
 }
 
 func ShowUser(c *gin.Context) {
@@ -116,7 +117,7 @@ func ShowUser(c *gin.Context) {
 
 func DeleteUser(c *gin.Context) {
 	id := c.Param("id")
-	user,_ := c.Get("ID")
+	user, _ := c.Get("ID")
 
 	var userToDelete models.User
 	if err := database.DB.First(&userToDelete, "id = ?", id).Error; err == nil {
