@@ -16,7 +16,7 @@ func main() {
 		})
 	})
 
-	router.POST("/auth/signup", auth.SignUp)
+	router.POST("/auth/signup", handlers.SignUp)
 
 	router.Run("localhost:8080")
 }

@@ -1,12 +1,12 @@
-package auth
+package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kuro-vale/kuro-movies-api/database"
+	"github.com/kuro-vale/kuro-movies-api/handlers"
 	"github.com/kuro-vale/kuro-movies-api/models"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -29,7 +29,7 @@ func SignUp(c *gin.Context) {
 		Password: string(hashedPassword),
 	}
 	if err := database.DB.Create(&newUser).Error; err == nil {
-		response := UserAssembler(c, newUser)
+		response := handlers.UserAssembler(c, newUser)
 		c.JSON(http.StatusCreated, response)
 		return
 	}
@@ -37,16 +37,4 @@ func SignUp(c *gin.Context) {
 	c.Status(http.StatusBadRequest)
 }
 
-func UserAssembler(c *gin.Context, user models.User) *models.UserResponse {
-	userResponse := models.UserResponse{
-		ID:       user.ID,
-		Email:    user.Email,
-		JoinDate: user.CreatedAt,
-		Links: gin.H{
-			"self": gin.H{
-				"href": fmt.Sprintf("%s/users/%d", c.Request.Host, user.ID),
-			},
-		},
-	}
-	return &userResponse
-}
+
