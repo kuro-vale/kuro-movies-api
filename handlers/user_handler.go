@@ -65,7 +65,7 @@ func UserIndex(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data": response,
+		"data":   response,
 		"_links": links,
 	})
 }
@@ -81,6 +81,7 @@ func SignUp(c *gin.Context) {
 	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 	if err != nil {
+		c.Status(http.StatusBadRequest)
 		return
 	}
 	newUser := models.User{
@@ -93,7 +94,45 @@ func SignUp(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusBadRequest)
+	c.JSON(http.StatusBadRequest, gin.H{
+		"message": "email has been already taken",
+	})
+}
+
+func ShowUser(c *gin.Context) {
+	id := c.Param("id")
+
+	var user models.User
+	if err := database.DB.First(&user, "id = ?", id).Error; err == nil {
+		response := userAssembler(c, user)
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{
+		"message": "user not found",
+	})
+}
+
+func DeleteUser(c *gin.Context) {
+	id := c.Param("id")
+	user,_ := c.Get("ID")
+
+	var userToDelete models.User
+	if err := database.DB.First(&userToDelete, "id = ?", id).Error; err == nil {
+		if userToDelete.ID == user.(models.User).ID {
+			database.DB.Delete(&userToDelete)
+			c.Status(http.StatusNoContent)
+			return
+		} else {
+			c.Status(http.StatusForbidden)
+			return
+		}
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{
+		"message": "user not found",
+	})
 }
 
 func userAssembler(c *gin.Context, user models.User) *models.UserResponse {

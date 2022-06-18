@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/kuro-vale/kuro-movies-api/database"
 	"github.com/kuro-vale/kuro-movies-api/handlers"
@@ -8,6 +10,10 @@ import (
 )
 
 func main() {
+	port:= os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 	router := gin.Default()
 	database.ConnectDatabase()
 	authMiddleware := middleware.InitJWTMiddleware
@@ -16,7 +22,8 @@ func main() {
 	authorized := router.Group("/")
 	authorized.Use(authMiddleware().MiddlewareFunc())
 	{
-		
+		// Users
+		authorized.DELETE("/users/:id", handlers.DeleteUser)
 	}
 
 	// Auth
@@ -24,6 +31,7 @@ func main() {
 	router.POST("/auth/login", authMiddleware().LoginHandler)
 	// Users
 	router.GET("/users", handlers.UserIndex)
+	router.GET("/users/:id", handlers.ShowUser)
 
-	router.Run("localhost:8080")
+	router.Run("localhost:"+port)
 }
