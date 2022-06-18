@@ -20,6 +20,7 @@ func InitJWTMiddleware() *jwt.GinJWTMiddleware {
 		Realm:       "kuro-movies-api",
 		Key:         []byte(SECRET_KEY),
 		IdentityKey: identityKey,
+		Timeout: time.Hour * 72,
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
 			if v, ok := data.(models.User); ok {
 				return jwt.MapClaims{
@@ -51,6 +52,12 @@ func InitJWTMiddleware() *jwt.GinJWTMiddleware {
 		Unauthorized: func(c *gin.Context, code int, message string) {
 			c.JSON(code, gin.H{
 				"message": message,
+			})
+		},
+		LoginResponse: func(c *gin.Context, code int, message string, time time.Time) {
+			c.JSON(code, gin.H{
+				"message": "Login Successfully",
+				"token": message,
 			})
 		},
 		TokenLookup:   "header: Authorization, query: token, cookie: jwt",
