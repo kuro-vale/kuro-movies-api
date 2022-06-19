@@ -29,5 +29,5 @@ type ActorResponse struct {
 	Name   string `json:"name"`
 	Age    uint   `json:"age"`
 	Gender string `json:"gender"`
-	Links  gin.H
+	Links  gin.H  `json:"_links"`
 }

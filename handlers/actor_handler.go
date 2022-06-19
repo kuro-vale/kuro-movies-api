@@ -72,6 +72,21 @@ func StoreActor(c *gin.Context) {
 	}
 }
 
+func ShowActor(c *gin.Context) {
+	id := c.Param("id")
+
+	var actor models.Actor
+	if err := database.DB.First(&actor, "id = ?", id).Error; err == nil {
+		response := actorAssembler(c, actor)
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{
+		"message": "actor not found",
+	})
+}
+
 func actorAssembler(c *gin.Context, actor models.Actor) *models.ActorResponse {
 	actorResponse := models.ActorResponse{
 		ID:     actor.ID,
