@@ -9,6 +9,8 @@ import (
 	"github.com/kuro-vale/kuro-movies-api/database"
 	"github.com/kuro-vale/kuro-movies-api/models"
 	"github.com/kuro-vale/kuro-movies-api/tools"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func ActorIndex(c *gin.Context) {
@@ -41,6 +43,33 @@ func ActorIndex(c *gin.Context) {
 		"data":   response,
 		"_links": links,
 	})
+}
+
+func StoreActor(c *gin.Context) {
+	var request models.StoreActorRequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": tools.FormatErr(err.Error()),
+		})
+		return
+	}
+
+	newActor := models.Actor{
+		Name:   request.Name,
+		Age:    request.Age,
+		Gender: cases.Title(language.Und).String(request.Gender),
+	}
+	if err := database.DB.Create(&newActor).Error; err == nil {
+		response := actorAssembler(c, newActor)
+		c.JSON(http.StatusCreated, response)
+		return
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": tools.FormatErr(err.Error()),
+		})
+		return
+	}
 }
 
 func actorAssembler(c *gin.Context, actor models.Actor) *models.ActorResponse {

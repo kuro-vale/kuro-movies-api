@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 	"github.com/kuro-vale/kuro-movies-api/database"
 	"github.com/kuro-vale/kuro-movies-api/models"
 	"github.com/kuro-vale/kuro-movies-api/tools"
@@ -48,7 +47,7 @@ func UserIndex(c *gin.Context) {
 func SignUp(c *gin.Context) {
 	var request models.UserRequest
 
-	if err := c.ShouldBindWith(&request, binding.JSON); err != nil {
+	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": tools.FormatErr(err.Error()),
 		})

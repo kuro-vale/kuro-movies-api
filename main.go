@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	port:= os.Getenv("PORT")
+	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
@@ -24,6 +24,8 @@ func main() {
 	{
 		// Users
 		authorized.DELETE("/users/:id", handlers.DeleteUser)
+		// Actors
+		authorized.POST("/actors", handlers.StoreActor)
 	}
 
 	// Auth
@@ -35,5 +37,5 @@ func main() {
 	// Actors
 	router.GET("/actors", handlers.ActorIndex)
 
-	router.Run("localhost:"+port)
+	router.Run("localhost:" + port)
 }
