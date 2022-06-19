@@ -122,6 +122,21 @@ func UpdateActor(c *gin.Context) {
 	})
 }
 
+func DeleteActor(c *gin.Context) {
+	id := c.Param("id")
+
+	var actorToDelete models.Actor
+	if err := database.DB.First(&actorToDelete, "id = ?", id).Error; err == nil {
+		database.DB.Delete(&actorToDelete)
+		c.Status(http.StatusNoContent)
+		return
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{
+		"message": "user not found",
+	})
+}
+
 func actorAssembler(c *gin.Context, actor models.Actor) *models.ActorResponse {
 	actorResponse := models.ActorResponse{
 		ID:     actor.ID,
