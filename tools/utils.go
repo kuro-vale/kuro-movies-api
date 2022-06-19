@@ -80,11 +80,17 @@ func FormatErr(err string) string {
 	if strings.Contains(err, "tag") && strings.Contains(err, "lte") && strings.Contains(err, "Age") {
 		return "Age must be less than 90"
 	}
+	if strings.Contains(err, "tag") && strings.Contains(err, "gte") && strings.Contains(err, "Age") {
+		return "Age must be greater than 18"
+	}
 	if strings.Contains(err, "SQLSTATE") && strings.Contains(err, "gender") {
 		return "Gender must be male, female or x"
 	}
 	if strings.Contains(err, "cannot unmarshal") {
 		return "Invalid field type"
+	}
+	if strings.Contains(err, "EOF") {
+		return "Empty body"
 	}
 	return err
 }

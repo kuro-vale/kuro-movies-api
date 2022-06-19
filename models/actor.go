@@ -14,13 +14,13 @@ type Actor struct {
 
 type StoreActorRequest struct {
 	Name   string `json:"name" binding:"required,max=50"`
-	Age    uint   `json:"age" binding:"required,lte=90"`
+	Age    uint   `json:"age" binding:"required,lte=90,gte=18"`
 	Gender string `json:"gender" binding:"required"`
 }
 
 type UpdateActorRequest struct {
 	Name   string `json:"name" binding:"max=50"`
-	Age    uint   `json:"age" binding:"lte=90"`
+	Age    uint   `json:"age" binding:"lte=90,gte=18"`
 	Gender string `json:"gender"`
 }
 

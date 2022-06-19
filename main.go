@@ -26,6 +26,7 @@ func main() {
 		authorized.DELETE("/users/:id", handlers.DeleteUser)
 		// Actors
 		authorized.POST("/actors", handlers.StoreActor)
+		authorized.PATCH("/actors/:id", handlers.UpdateActor)
 	}
 
 	// Auth

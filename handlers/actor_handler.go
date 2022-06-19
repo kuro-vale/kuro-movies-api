@@ -87,6 +87,41 @@ func ShowActor(c *gin.Context) {
 	})
 }
 
+func UpdateActor(c *gin.Context) {
+	id := c.Param("id")
+	var request models.UpdateActorRequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": tools.FormatErr(err.Error()),
+		})
+		return
+	}
+	updatedActor := models.Actor{
+		Name:   request.Name,
+		Age:    request.Age,
+		Gender: cases.Title(language.Und).String(request.Gender),
+	}
+
+	var actor models.Actor
+	if err := database.DB.First(&actor, "id = ?", id).Error; err == nil {
+		if err := database.DB.Model(&actor).Updates(updatedActor).Error; err == nil {
+			response := actorAssembler(c, actor)
+			c.JSON(http.StatusOK, response)
+			return
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": tools.FormatErr(err.Error()),
+			})
+			return
+		}
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{
+		"message": "actor not found",
+	})
+}
+
 func actorAssembler(c *gin.Context, actor models.Actor) *models.ActorResponse {
 	actorResponse := models.ActorResponse{
 		ID:     actor.ID,
