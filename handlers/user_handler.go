@@ -7,8 +7,10 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/kuro-vale/kuro-movies-api/database"
 	"github.com/kuro-vale/kuro-movies-api/models"
+	"github.com/kuro-vale/kuro-movies-api/tools"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -73,9 +75,9 @@ func UserIndex(c *gin.Context) {
 func SignUp(c *gin.Context) {
 	var request models.UserRequest
 
-	if err := c.BindJSON(&request); err != nil {
+	if err := c.ShouldBindWith(&request, binding.JSON); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
+			"message": tools.FormatErr(err.Error()),
 		})
 		return
 	}
@@ -94,7 +96,7 @@ func SignUp(c *gin.Context) {
 		return
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
+			"message": tools.FormatErr(err.Error()),
 		})
 		return
 	}
