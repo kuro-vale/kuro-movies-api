@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"math"
 	"net/http"
 	"strconv"
 
@@ -38,33 +37,7 @@ func UserIndex(c *gin.Context) {
 		email = "&email=" + email
 	}
 
-	totalPages := math.Ceil(float64(count) / float64(pageLimit))
-	var next string
-	var previous string
-	if page+1 <= int(totalPages) {
-		next = fmt.Sprintf("%s/users?page=%d%s", c.Request.Host, page+1, email)
-	}
-	if page-1 > 0 {
-		previous = fmt.Sprintf("%s/users?page=%d%s", c.Request.Host, page-1, email)
-	}
-	links := gin.H{
-		"count": count,
-		"first": gin.H{
-			"href": fmt.Sprintf("%s/users?page=%d%s", c.Request.Host, 1, email),
-		},
-		"last": gin.H{
-			"href": fmt.Sprintf("%s/users?page=%.f%s", c.Request.Host, totalPages, email),
-		},
-		"next": gin.H{
-			"href": next,
-		},
-		"previous": gin.H{
-			"href": previous,
-		},
-		"self": gin.H{
-			"href": fmt.Sprintf("%s/users?page=%d%s", c.Request.Host, page, email),
-		},
-	}
+	links := tools.PaginateIndex(c, page, pageLimit, count, "users", email)
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":   response,
