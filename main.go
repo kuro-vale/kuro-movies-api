@@ -32,6 +32,8 @@ func main() {
 	// Users
 	router.GET("/users", handlers.UserIndex)
 	router.GET("/users/:id", handlers.ShowUser)
+	// Actors
+	router.GET("/actors", handlers.ActorIndex)
 
 	router.Run("localhost:"+port)
 }

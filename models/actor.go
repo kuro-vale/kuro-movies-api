@@ -9,7 +9,7 @@ type Actor struct {
 	gorm.Model
 	Name   string `gorm:"size:50;not null;default:null"`
 	Age    uint   `gorm:"not null;default:null"`
-	Gender string `gorm:"check:upper(gender)='FEMALE' OR upper(gender)='MALE' OR upper(gender)='X';not null;default:null"`
+	Gender string `gorm:"check:gender='Female' OR gender='Male' OR gender='X';not null;default:null"`
 }
 
 type StoreActorRequest struct {
