@@ -31,6 +31,7 @@ func main() {
 		// Movies
 		authorized.POST("/movies", handlers.StoreMovie)
 		authorized.PATCH("/movies/:id", handlers.UpdateMovie)
+		authorized.DELETE("/movies/:id", handlers.DeleteMovie)
 	}
 
 	// Auth

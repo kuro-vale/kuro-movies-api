@@ -133,7 +133,7 @@ func DeleteActor(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNotFound, gin.H{
-		"message": "user not found",
+		"message": "actor not found",
 	})
 }
 
