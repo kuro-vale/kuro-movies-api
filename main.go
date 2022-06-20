@@ -46,6 +46,7 @@ func main() {
 	// Movies
 	router.GET("/movies", handlers.MovieIndex)
 	router.GET("/movies/:id", handlers.ShowMovie)
+	router.GET("/movies/:id/cast", handlers.ShowMovieCast)
 
 	router.Run("localhost:" + port)
 }
