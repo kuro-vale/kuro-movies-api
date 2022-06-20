@@ -86,6 +86,42 @@ func FormatErr(err string) string {
 	if strings.Contains(err, "SQLSTATE") && strings.Contains(err, "gender") {
 		return "Gender must be male, female or x"
 	}
+	if strings.Contains(err, "tag") && strings.Contains(err, "required") && strings.Contains(err, "Title") {
+		return "Title is required"
+	}
+	if strings.Contains(err, "tag") && strings.Contains(err, "required") && strings.Contains(err, "Genre") {
+		return "Genre is required"
+	}
+	if strings.Contains(err, "tag") && strings.Contains(err, "required") && strings.Contains(err, "Price") {
+		return "Price is required"
+	}
+	if strings.Contains(err, "tag") && strings.Contains(err, "required") && strings.Contains(err, "Director") {
+		return "Director is required"
+	}
+	if strings.Contains(err, "tag") && strings.Contains(err, "required") && strings.Contains(err, "Producer") {
+		return "Producer is required"
+	}
+	if strings.Contains(err, "tag") && strings.Contains(err, "max") && strings.Contains(err, "Title") {
+		return "Title must be under 150 characters"
+	}
+	if strings.Contains(err, "tag") && strings.Contains(err, "max") && strings.Contains(err, "Genre") {
+		return "Genre must be under 100 characters"
+	}
+	if strings.Contains(err, "tag") && strings.Contains(err, "lte") && strings.Contains(err, "Price") {
+		return "Price must be less than 1000"
+	}
+	if strings.Contains(err, "tag") && strings.Contains(err, "gte") && strings.Contains(err, "Price") {
+		return "Price must be greater than 1"
+	}
+	if strings.Contains(err, "tag") && strings.Contains(err, "max") && strings.Contains(err, "Director") {
+		return "Director must be under 50 characters"
+	}
+	if strings.Contains(err, "tag") && strings.Contains(err, "max") && strings.Contains(err, "Producer") {
+		return "Producer must be under 50 characters"
+	}
+	if strings.Contains(err, "SQLSTATE") && strings.Contains(err, "varying(10)") {
+		return "Price out of range"
+	}
 	if strings.Contains(err, "cannot unmarshal") {
 		return "Invalid field type"
 	}
