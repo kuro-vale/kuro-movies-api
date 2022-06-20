@@ -101,6 +101,46 @@ func ShowMovie(c *gin.Context) {
 	})
 }
 
+func UpdateMovie(c *gin.Context) {
+	id := c.Param("id")
+	var request models.UpdateMovieRequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": tools.FormatErr(err.Error()),
+		})
+		return
+	}
+	updatedMovie := models.Movie{
+		Title:    request.Title,
+		Genre:    request.Genre,
+		Price:    fmt.Sprintf("$%v", request.Price),
+		Director: request.Director,
+		Producer: request.Producer,
+	}
+
+	var movie models.Movie
+	if err := database.DB.First(&movie, "id = ?", id).Error; err == nil {
+		if request.Price == 0 {
+			updatedMovie.Price = movie.Price
+		}
+		if err := database.DB.Model(&movie).Updates(updatedMovie).Error; err == nil {
+			response := movieAssembler(c, movie)
+			c.JSON(http.StatusOK, response)
+			return
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": tools.FormatErr(err.Error()),
+			})
+			return
+		}
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{
+		"message": "movie not found",
+	})
+}
+
 func movieAssembler(c *gin.Context, movie models.Movie) *models.MovieResponse {
 	movieResponse := models.MovieResponse{
 		ID:       movie.ID,
