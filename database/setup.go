@@ -18,6 +18,7 @@ func ConnectDatabase() {
 	}
 	database.AutoMigrate(&models.User{})
 	database.AutoMigrate(&models.Actor{})
+	database.AutoMigrate(&models.Movie{})
 
 	DB = *database
 }
