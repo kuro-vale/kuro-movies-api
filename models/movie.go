@@ -15,17 +15,17 @@ type Movie struct {
 }
 
 type StoreMovieRequest struct {
-	Title    string `json:"title" binding:"required, max=150"`
-	Genre    string `json:"genre" binding:"required, max=100"`
-	Price    string `json:"price" binding:"required, max=10"`
-	Director string `json:"director" binding:"required, max=50"`
-	Producer string `json:"producer" binding:"required, max=50"`
+	Title    string `json:"title" binding:"required,max=150"`
+	Genre    string `json:"genre" binding:"required,max=100"`
+	Price    float32 `json:"price" binding:"required,lte=1000,gte=1"`
+	Director string `json:"director" binding:"required,max=50"`
+	Producer string `json:"producer" binding:"required,max=50"`
 }
 
 type UpdateMovieRequest struct {
 	Title    string `json:"title" binding:"max=150"`
 	Genre    string `json:"genre" binding:"max=100"`
-	Price    string `json:"price" binding:"max=10"`
+	Price    float32 `json:"price" binding:"lte=1000,gte=1"`
 	Director string `json:"director" binding:"max=50"`
 	Producer string `json:"producer" binding:"max=50"`
 }

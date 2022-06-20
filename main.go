@@ -28,6 +28,8 @@ func main() {
 		authorized.POST("/actors", handlers.StoreActor)
 		authorized.PATCH("/actors/:id", handlers.UpdateActor)
 		authorized.DELETE("/actors/:id", handlers.DeleteActor)
+		// Movies
+		authorized.POST("/movies", handlers.StoreMovie)
 	}
 
 	// Auth

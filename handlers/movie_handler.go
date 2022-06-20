@@ -57,6 +57,35 @@ func MovieIndex(c *gin.Context) {
 	})
 }
 
+func StoreMovie(c *gin.Context) {
+	var request models.StoreMovieRequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": tools.FormatErr(err.Error()),
+		})
+		return
+	}
+
+	newMovie := models.Movie{
+		Title:    request.Title,
+		Genre:    request.Genre,
+		Price:    fmt.Sprintf("$%v", request.Price),
+		Director: request.Director,
+		Producer: request.Producer,
+	}
+	if err := database.DB.Create(&newMovie).Error; err == nil {
+		response := movieAssembler(c, newMovie)
+		c.JSON(http.StatusCreated, response)
+		return
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": tools.FormatErr(err.Error()),
+		})
+		return
+	}
+}
+
 func movieAssembler(c *gin.Context, movie models.Movie) *models.MovieResponse {
 	movieResponse := models.MovieResponse{
 		ID:       movie.ID,
