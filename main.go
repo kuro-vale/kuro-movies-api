@@ -43,6 +43,7 @@ func main() {
 	router.GET("/actors/:id", handlers.ShowActor)
 	// Movies
 	router.GET("/movies", handlers.MovieIndex)
+	router.GET("/movies/:id", handlers.ShowMovie)
 
 	router.Run("localhost:" + port)
 }

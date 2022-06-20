@@ -86,6 +86,21 @@ func StoreMovie(c *gin.Context) {
 	}
 }
 
+func ShowMovie(c *gin.Context) {
+	id := c.Param("id")
+
+	var movie models.Movie
+	if err := database.DB.First(&movie, "id = ?", id).Error; err == nil {
+		response := movieAssembler(c, movie)
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{
+		"message": "movie not found",
+	})
+}
+
 func movieAssembler(c *gin.Context, movie models.Movie) *models.MovieResponse {
 	movieResponse := models.MovieResponse{
 		ID:       movie.ID,
