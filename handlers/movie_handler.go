@@ -159,21 +159,34 @@ func DeleteMovie(c *gin.Context) {
 func ShowMovieCast(c *gin.Context) {
 	id := c.Param("id")
 
-	var movie models.Movie
+	pageLimit := 10
+	page, err := strconv.Atoi(c.Query("page"))
+	if err != nil {
+		page = 1
+	}
+	name := c.Query("name")
+	var count int64
 	var cast []models.Actor
-	if err := database.DB.Preload("Actors").First(&movie, "id = ?", id).Error; err == nil {
-		cast = movie.Actors
-		var response []models.ActorResponse
-		for _, actor := range cast {
-			actor := actorAssembler(c, actor)
-			response = append(response, *actor)
-		}
-		c.JSON(http.StatusOK, response)
-		return
+	// Query to get the count
+	database.DB.Joins("JOIN public.\"cast\" AS c ON c.actor_id = actors.id AND c.movie_id = ?", id).Find(&cast, "name LIKE ?", "%"+name+"%").Count(&count)
+	// Query to get the results
+	database.DB.Limit(pageLimit).Offset((page-1)*pageLimit).Joins("JOIN public.\"cast\" AS c ON c.actor_id = actors.id AND c.movie_id = ?", id).Find(&cast, "name LIKE ?", "%"+name+"%")
+
+	var response []models.ActorResponse
+	for _, actor := range cast {
+		actor := actorAssembler(c, actor)
+		response = append(response, *actor)
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{
-		"message": "movie not found",
+	if len(name) > 0 {
+		name = "&name=" + name
+	}
+
+	links := tools.PaginateIndex(c, page, pageLimit, count, "movies/"+id+"/cast", name)
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":   response,
+		"_links": links,
 	})
 }
 
