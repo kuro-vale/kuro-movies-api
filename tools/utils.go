@@ -122,6 +122,12 @@ func FormatErr(err string) string {
 	if strings.Contains(err, "SQLSTATE") && strings.Contains(err, "varying(10)") {
 		return "Price out of range"
 	}
+	if strings.Contains(err, "SQLSTATE") && strings.Contains(err, "not-null") {
+		return "Fields cannot be null"
+	}
+	if strings.Contains(err, "SQLSTATE") && strings.Contains(err, "chk_actors_age") {
+		return "Actor age must be over 18 an under 90"
+	}
 	if strings.Contains(err, "cannot unmarshal") {
 		return "Invalid field type"
 	}

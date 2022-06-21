@@ -9,6 +9,8 @@ import (
 	"github.com/kuro-vale/kuro-movies-api/database"
 	"github.com/kuro-vale/kuro-movies-api/models"
 	"github.com/kuro-vale/kuro-movies-api/tools"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func MovieIndex(c *gin.Context) {
@@ -66,6 +68,22 @@ func StoreMovie(c *gin.Context) {
 		})
 		return
 	}
+	var cast []models.Actor
+	for _, actorRequest := range request.Cast {
+		newActor := models.Actor{
+			Name:   actorRequest.Name,
+			Age:    actorRequest.Age,
+			Gender: cases.Title(language.Und).String(actorRequest.Gender),
+		}
+		if err := database.DB.FirstOrCreate(&newActor, "name = ?", newActor.Name).Error; err == nil {
+			cast = append(cast, newActor)
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": tools.FormatErr(err.Error()),
+			})
+			return
+		}
+	}
 
 	newMovie := models.Movie{
 		Title:    request.Title,
@@ -73,6 +91,7 @@ func StoreMovie(c *gin.Context) {
 		Price:    fmt.Sprintf("$%v", request.Price),
 		Director: request.Director,
 		Producer: request.Producer,
+		Actors:   cast,
 	}
 	if err := database.DB.Create(&newMovie).Error; err == nil {
 		response := movieAssembler(c, newMovie)
