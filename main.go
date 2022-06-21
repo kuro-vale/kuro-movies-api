@@ -49,5 +49,9 @@ func main() {
 	router.GET("/movies/:id", handlers.ShowMovie)
 	router.GET("/movies/:id/cast", handlers.ShowMovieCast)
 
+	// GraphQL
+	router.GET("/graph", handlers.PlaygroundHandler())
+	router.POST("/graph", handlers.GraphqlHandler())
+
 	router.Run("localhost:" + port)
 }
