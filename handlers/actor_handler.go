@@ -137,6 +137,25 @@ func DeleteActor(c *gin.Context) {
 	})
 }
 
+func ShowActorMovies(c *gin.Context) {
+	id := c.Param("id")
+
+	var actor models.Actor
+	if err := database.DB.Preload("Movies").First(&actor, "id = ?", id).Error; err == nil {
+		var response []models.MovieResponse
+		for _, movie := range actor.Movies {
+			movie := movieAssembler(c, movie)
+			response = append(response, *movie)
+		}
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{
+		"message": "actor not found",
+	})
+}
+
 func actorAssembler(c *gin.Context, actor models.Actor) *models.ActorResponse {
 	actorResponse := models.ActorResponse{
 		ID:     actor.ID,

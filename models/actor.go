@@ -7,9 +7,10 @@ import (
 
 type Actor struct {
 	gorm.Model
-	Name   string `gorm:"size:50;not null;default:null"`
-	Age    uint   `gorm:"not null;default:null"`
-	Gender string `gorm:"check:gender='Female' OR gender='Male' OR gender='X';not null;default:null"`
+	Name   string  `gorm:"size:50;not null;default:null"`
+	Age    uint    `gorm:"not null;default:null"`
+	Gender string  `gorm:"check:gender='Female' OR gender='Male' OR gender='X';not null;default:null"`
+	Movies []Movie `gorm:"many2many:cast;"`
 }
 
 type StoreActorRequest struct {

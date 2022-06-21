@@ -43,6 +43,7 @@ func main() {
 	// Actors
 	router.GET("/actors", handlers.ActorIndex)
 	router.GET("/actors/:id", handlers.ShowActor)
+	router.GET("/actors/:id/movies", handlers.ShowActorMovies)
 	// Movies
 	router.GET("/movies", handlers.MovieIndex)
 	router.GET("/movies/:id", handlers.ShowMovie)
