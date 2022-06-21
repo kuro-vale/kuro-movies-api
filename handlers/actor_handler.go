@@ -166,6 +166,9 @@ func actorAssembler(c *gin.Context, actor models.Actor) *models.ActorResponse {
 			"self": gin.H{
 				"href": fmt.Sprintf("%s/actors/%d", c.Request.Host, actor.ID),
 			},
+			"movies": gin.H{
+				"href": fmt.Sprintf("%s/actors/%d/movies", c.Request.Host, actor.ID),
+			},
 		},
 	}
 	return &actorResponse

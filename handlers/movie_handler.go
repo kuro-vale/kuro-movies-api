@@ -202,6 +202,9 @@ func movieAssembler(c *gin.Context, movie models.Movie) *models.MovieResponse {
 			"self": gin.H{
 				"href": fmt.Sprintf("%s/movies/%d", c.Request.Host, movie.ID),
 			},
+			"cast": gin.H{
+				"href": fmt.Sprintf("%s/movies/%d/cast", c.Request.Host, movie.ID),
+			},
 		},
 	}
 	return &movieResponse
