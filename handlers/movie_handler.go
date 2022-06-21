@@ -130,6 +130,24 @@ func UpdateMovie(c *gin.Context) {
 		})
 		return
 	}
+
+	var cast []models.Actor
+	for _, actorRequest := range request.Cast {
+		newActor := models.Actor{
+			Name:   actorRequest.Name,
+			Age:    actorRequest.Age,
+			Gender: cases.Title(language.Und).String(actorRequest.Gender),
+		}
+		if err := database.DB.FirstOrCreate(&newActor, "name = ?", newActor.Name).Error; err == nil {
+			cast = append(cast, newActor)
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": tools.FormatErr(err.Error()),
+			})
+			return
+		}
+	}
+
 	updatedMovie := models.Movie{
 		Title:    request.Title,
 		Genre:    request.Genre,
@@ -144,6 +162,7 @@ func UpdateMovie(c *gin.Context) {
 			updatedMovie.Price = movie.Price
 		}
 		if err := database.DB.Model(&movie).Updates(updatedMovie).Error; err == nil {
+			database.DB.Model(&movie).Association("Actors").Append(cast)
 			response := movieAssembler(c, movie)
 			c.JSON(http.StatusOK, response)
 			return

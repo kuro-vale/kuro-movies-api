@@ -30,6 +30,7 @@ type UpdateMovieRequest struct {
 	Price    float32 `json:"price" binding:"lte=1000,gte=0"`
 	Director string  `json:"director" binding:"max=50"`
 	Producer string  `json:"producer" binding:"max=50"`
+	Cast     []StoreActorRequest `json:"cast"`
 }
 
 type MovieResponse struct {
