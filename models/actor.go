@@ -7,7 +7,7 @@ import (
 
 type Actor struct {
 	gorm.Model
-	Name   string  `gorm:"size:50;not null;default:null"`
+	Name   string  `gorm:"unique;size:50;not null;default:null"`
 	Age    uint    `gorm:"check:age >= 18 AND age <= 90;not null;default:null"`
 	Gender string  `gorm:"check:gender='Female' OR gender='Male' OR gender='X';not null;default:null"`
 	Movies []Movie `gorm:"many2many:cast;"`

@@ -62,6 +62,9 @@ func FormatErr(err string) string {
 	if strings.Contains(err, "SQLSTATE") && strings.Contains(err, "unique") && strings.Contains(err, "email") {
 		return "Email is already used"
 	}
+	if strings.Contains(err, "SQLSTATE") && strings.Contains(err, "unique") && strings.Contains(err, "name") {
+		return "Name must be unique"
+	}
 	if strings.Contains(err, "SQLSTATE") && strings.Contains(err, "varying(255)") {
 		return "Fields must be under 255 characters"
 	}
