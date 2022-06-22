@@ -16,21 +16,9 @@ type Actor {
   movies: [Movie]
 }
 
-input FilterMovie {
-  title: String
-  genre: String
-  director: String
-  producer: String
-}
-
-input FilterActor {
-  name: String
-  gender: String
-}
-
 type Info {
   count: Int
-  pages: Int
+  last: Int
   next: Int
   previous: Int
 }
@@ -48,8 +36,8 @@ type Actors {
 type Query {
   movie(id: ID!): Movie
   moviesByIds(ids: [ID!]!): [Movie]
-  movies(page: Int, filter: FilterMovie): Movies
+  movies(page: Int = 1, title: String = "", genre: String = "", director: String = "", producer: String = ""): Movies
   actor(id: ID!): Actor
   actorsByIds(ids: [ID!]!): [Actor]
-  actors(page: Int, filter: FilterActor): Actors
+  actors(page: Int = 1, name: String = "", gender: String = ""): Actors
 }

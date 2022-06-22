@@ -57,8 +57,8 @@ type ComplexityRoot struct {
 
 	Info struct {
 		Count    func(childComplexity int) int
+		Last     func(childComplexity int) int
 		Next     func(childComplexity int) int
-		Pages    func(childComplexity int) int
 		Previous func(childComplexity int) int
 	}
 
@@ -79,10 +79,10 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Actor       func(childComplexity int, id string) int
-		Actors      func(childComplexity int, page *int, filter *model.FilterActor) int
+		Actors      func(childComplexity int, page *int, name *string, gender *string) int
 		ActorsByIds func(childComplexity int, ids []string) int
 		Movie       func(childComplexity int, id string) int
-		Movies      func(childComplexity int, page *int, filter *model.FilterMovie) int
+		Movies      func(childComplexity int, page *int, title *string, genre *string, director *string, producer *string) int
 		MoviesByIds func(childComplexity int, ids []string) int
 	}
 }
@@ -90,10 +90,10 @@ type ComplexityRoot struct {
 type QueryResolver interface {
 	Movie(ctx context.Context, id string) (*model.Movie, error)
 	MoviesByIds(ctx context.Context, ids []string) ([]*model.Movie, error)
-	Movies(ctx context.Context, page *int, filter *model.FilterMovie) (*model.Movies, error)
+	Movies(ctx context.Context, page *int, title *string, genre *string, director *string, producer *string) (*model.Movies, error)
 	Actor(ctx context.Context, id string) (*model.Actor, error)
 	ActorsByIds(ctx context.Context, ids []string) ([]*model.Actor, error)
-	Actors(ctx context.Context, page *int, filter *model.FilterActor) (*model.Actors, error)
+	Actors(ctx context.Context, page *int, name *string, gender *string) (*model.Actors, error)
 }
 
 type executableSchema struct {
@@ -167,19 +167,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Info.Count(childComplexity), true
 
+	case "Info.last":
+		if e.complexity.Info.Last == nil {
+			break
+		}
+
+		return e.complexity.Info.Last(childComplexity), true
+
 	case "Info.next":
 		if e.complexity.Info.Next == nil {
 			break
 		}
 
 		return e.complexity.Info.Next(childComplexity), true
-
-	case "Info.pages":
-		if e.complexity.Info.Pages == nil {
-			break
-		}
-
-		return e.complexity.Info.Pages(childComplexity), true
 
 	case "Info.previous":
 		if e.complexity.Info.Previous == nil {
@@ -273,7 +273,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Actors(childComplexity, args["page"].(*int), args["filter"].(*model.FilterActor)), true
+		return e.complexity.Query.Actors(childComplexity, args["page"].(*int), args["name"].(*string), args["gender"].(*string)), true
 
 	case "Query.actorsByIds":
 		if e.complexity.Query.ActorsByIds == nil {
@@ -309,7 +309,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Movies(childComplexity, args["page"].(*int), args["filter"].(*model.FilterMovie)), true
+		return e.complexity.Query.Movies(childComplexity, args["page"].(*int), args["title"].(*string), args["genre"].(*string), args["director"].(*string), args["producer"].(*string)), true
 
 	case "Query.moviesByIds":
 		if e.complexity.Query.MoviesByIds == nil {
@@ -330,10 +330,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e}
-	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
-		ec.unmarshalInputFilterActor,
-		ec.unmarshalInputFilterMovie,
-	)
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap()
 	first := true
 
 	switch rc.Operation.Operation {
@@ -396,21 +393,9 @@ type Actor {
   movies: [Movie]
 }
 
-input FilterMovie {
-  title: String
-  genre: String
-  director: String
-  producer: String
-}
-
-input FilterActor {
-  name: String
-  gender: String
-}
-
 type Info {
   count: Int
-  pages: Int
+  last: Int
   next: Int
   previous: Int
 }
@@ -428,10 +413,10 @@ type Actors {
 type Query {
   movie(id: ID!): Movie
   moviesByIds(ids: [ID!]!): [Movie]
-  movies(page: Int, filter: FilterMovie): Movies
+  movies(page: Int = 1, title: String = "", genre: String = "", director: String = "", producer: String = ""): Movies
   actor(id: ID!): Actor
   actorsByIds(ids: [ID!]!): [Actor]
-  actors(page: Int, filter: FilterActor): Actors
+  actors(page: Int = 1, name: String = "", gender: String = ""): Actors
 }
 `, BuiltIn: false},
 }
@@ -498,15 +483,24 @@ func (ec *executionContext) field_Query_actors_args(ctx context.Context, rawArgs
 		}
 	}
 	args["page"] = arg0
-	var arg1 *model.FilterActor
-	if tmp, ok := rawArgs["filter"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
-		arg1, err = ec.unmarshalOFilterActor2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐFilterActor(ctx, tmp)
+	var arg1 *string
+	if tmp, ok := rawArgs["name"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["filter"] = arg1
+	args["name"] = arg1
+	var arg2 *string
+	if tmp, ok := rawArgs["gender"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gender"))
+		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["gender"] = arg2
 	return args, nil
 }
 
@@ -552,15 +546,42 @@ func (ec *executionContext) field_Query_movies_args(ctx context.Context, rawArgs
 		}
 	}
 	args["page"] = arg0
-	var arg1 *model.FilterMovie
-	if tmp, ok := rawArgs["filter"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
-		arg1, err = ec.unmarshalOFilterMovie2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐFilterMovie(ctx, tmp)
+	var arg1 *string
+	if tmp, ok := rawArgs["title"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["filter"] = arg1
+	args["title"] = arg1
+	var arg2 *string
+	if tmp, ok := rawArgs["genre"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("genre"))
+		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["genre"] = arg2
+	var arg3 *string
+	if tmp, ok := rawArgs["director"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("director"))
+		arg3, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["director"] = arg3
+	var arg4 *string
+	if tmp, ok := rawArgs["producer"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("producer"))
+		arg4, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["producer"] = arg4
 	return args, nil
 }
 
@@ -861,8 +882,8 @@ func (ec *executionContext) fieldContext_Actors_info(ctx context.Context, field 
 			switch field.Name {
 			case "count":
 				return ec.fieldContext_Info_count(ctx, field)
-			case "pages":
-				return ec.fieldContext_Info_pages(ctx, field)
+			case "last":
+				return ec.fieldContext_Info_last(ctx, field)
 			case "next":
 				return ec.fieldContext_Info_next(ctx, field)
 			case "previous":
@@ -968,8 +989,8 @@ func (ec *executionContext) fieldContext_Info_count(ctx context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Info_pages(ctx context.Context, field graphql.CollectedField, obj *model.Info) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Info_pages(ctx, field)
+func (ec *executionContext) _Info_last(ctx context.Context, field graphql.CollectedField, obj *model.Info) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Info_last(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -982,7 +1003,7 @@ func (ec *executionContext) _Info_pages(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Pages, nil
+		return obj.Last, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -996,7 +1017,7 @@ func (ec *executionContext) _Info_pages(ctx context.Context, field graphql.Colle
 	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Info_pages(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Info_last(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Info",
 		Field:      field,
@@ -1428,8 +1449,8 @@ func (ec *executionContext) fieldContext_Movies_info(ctx context.Context, field 
 			switch field.Name {
 			case "count":
 				return ec.fieldContext_Info_count(ctx, field)
-			case "pages":
-				return ec.fieldContext_Info_pages(ctx, field)
+			case "last":
+				return ec.fieldContext_Info_last(ctx, field)
 			case "next":
 				return ec.fieldContext_Info_next(ctx, field)
 			case "previous":
@@ -1648,7 +1669,7 @@ func (ec *executionContext) _Query_movies(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Movies(rctx, fc.Args["page"].(*int), fc.Args["filter"].(*model.FilterMovie))
+		return ec.resolvers.Query().Movies(rctx, fc.Args["page"].(*int), fc.Args["title"].(*string), fc.Args["genre"].(*string), fc.Args["director"].(*string), fc.Args["producer"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1834,7 +1855,7 @@ func (ec *executionContext) _Query_actors(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Actors(rctx, fc.Args["page"].(*int), fc.Args["filter"].(*model.FilterActor))
+		return ec.resolvers.Query().Actors(rctx, fc.Args["page"].(*int), fc.Args["name"].(*string), fc.Args["gender"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3780,84 +3801,6 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputFilterActor(ctx context.Context, obj interface{}) (model.FilterActor, error) {
-	var it model.FilterActor
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "gender":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gender"))
-			it.Gender, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputFilterMovie(ctx context.Context, obj interface{}) (model.FilterMovie, error) {
-	var it model.FilterMovie
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "title":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
-			it.Title, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "genre":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("genre"))
-			it.Genre, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "director":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("director"))
-			it.Director, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "producer":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("producer"))
-			it.Producer, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -3950,9 +3893,9 @@ func (ec *executionContext) _Info(ctx context.Context, sel ast.SelectionSet, obj
 
 			out.Values[i] = ec._Info_count(ctx, field, obj)
 
-		case "pages":
+		case "last":
 
-			out.Values[i] = ec._Info_pages(ctx, field, obj)
+			out.Values[i] = ec._Info_last(ctx, field, obj)
 
 		case "next":
 
@@ -4940,22 +4883,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	}
 	res := graphql.MarshalBoolean(*v)
 	return res
-}
-
-func (ec *executionContext) unmarshalOFilterActor2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐFilterActor(ctx context.Context, v interface{}) (*model.FilterActor, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputFilterActor(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalOFilterMovie2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐFilterMovie(ctx context.Context, v interface{}) (*model.FilterMovie, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputFilterMovie(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

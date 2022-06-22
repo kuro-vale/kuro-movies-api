@@ -2,7 +2,6 @@ package graph
 
 import (
 	"fmt"
-	"unsafe"
 
 	"github.com/kuro-vale/kuro-movies-api/graph/model"
 	"github.com/kuro-vale/kuro-movies-api/models"
@@ -22,11 +21,12 @@ func movieAssembler(movie models.Movie) model.Movie {
 }
 
 func actorAssembler(actor models.Actor) model.Actor {
+	var agePointer int = int(actor.Age)
 	id := fmt.Sprint(actor.ID)
 	actorGraph := model.Actor{
 		ID:     &id,
 		Name:   &actor.Name,
-		Age:    (*int)(unsafe.Pointer(&actor.Age)),
+		Age:    &agePointer,
 		Gender: &actor.Gender,
 	}
 	return actorGraph

@@ -15,21 +15,9 @@ type Actors struct {
 	Data []*Actor `json:"data"`
 }
 
-type FilterActor struct {
-	Name   *string `json:"name"`
-	Gender *string `json:"gender"`
-}
-
-type FilterMovie struct {
-	Title    *string `json:"title"`
-	Genre    *string `json:"genre"`
-	Director *string `json:"director"`
-	Producer *string `json:"producer"`
-}
-
 type Info struct {
 	Count    *int `json:"count"`
-	Pages    *int `json:"pages"`
+	Last     *int `json:"last"`
 	Next     *int `json:"next"`
 	Previous *int `json:"previous"`
 }

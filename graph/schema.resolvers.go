@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/kuro-vale/kuro-movies-api/database"
 	"github.com/kuro-vale/kuro-movies-api/graph/generated"
@@ -21,10 +22,16 @@ func (r *queryResolver) MoviesByIds(ctx context.Context, ids []string) ([]*model
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Movies(ctx context.Context, page *int, filter *model.FilterMovie) (*model.Movies, error) {
+func (r *queryResolver) Movies(ctx context.Context, page *int, title *string, genre *string, director *string, producer *string) (*model.Movies, error) {
+	pageLimit := 20
+	var count int64
+
 	var moviesGraph []*model.Movie
 	var movies []models.Movie
-	database.DB.Preload("Actors").Find(&movies)
+	// Query to get the count
+	database.DB.Find(&movies, "title LIKE ? AND genre LIKE ? AND director LIKE ? AND producer LIKE ?", "%"+*title+"%", "%"+*genre+"%", "%"+*director+"%", "%"+*producer+"%").Count(&count)
+	// Query to get the results
+	database.DB.Limit(pageLimit).Offset((*page-1)*pageLimit).Preload("Actors").Find(&movies, "title LIKE ? AND genre LIKE ? AND director LIKE ? AND producer LIKE ?", "%"+*title+"%", "%"+*genre+"%", "%"+*director+"%", "%"+*producer+"%")
 	for _, movie := range movies {
 		var actorsGraph []*model.Actor
 		for _, actor := range movie.Actors {
@@ -42,10 +49,23 @@ func (r *queryResolver) Movies(ctx context.Context, page *int, filter *model.Fil
 		movie.Actors = actorsGraph
 		moviesGraph = append(moviesGraph, &movie)
 	}
-	count := 2
+	totalPages := math.Ceil(float64(count) / float64(pageLimit))
+	var next int
+	var previous int
+	if *page+1 <= int(totalPages) {
+		next = *page + 1
+	}
+	if *page-1 > 0 {
+		previous = *page - 1
+	}
+	var last int = int(totalPages)
+	var countPointer int = int(count)
 	return &model.Movies{
 		Info: &model.Info{
-			Count: &count,
+			Count:    &countPointer,
+			Last:     &last,
+			Next:     &next,
+			Previous: &previous,
 		},
 		Data: moviesGraph,
 	}, nil
@@ -59,7 +79,7 @@ func (r *queryResolver) ActorsByIds(ctx context.Context, ids []string) ([]*model
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Actors(ctx context.Context, page *int, filter *model.FilterActor) (*model.Actors, error) {
+func (r *queryResolver) Actors(ctx context.Context, page *int, name *string, gender *string) (*model.Actors, error) {
 	var actorsGraph []*model.Actor
 	var actors []models.Actor
 	database.DB.Preload("Movies").Find(&actors)
