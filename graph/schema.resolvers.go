@@ -80,9 +80,15 @@ func (r *queryResolver) ActorsByIds(ctx context.Context, ids []string) ([]*model
 }
 
 func (r *queryResolver) Actors(ctx context.Context, page *int, name *string, gender *string) (*model.Actors, error) {
+	pageLimit := 20
+	var count int64
+
 	var actorsGraph []*model.Actor
 	var actors []models.Actor
-	database.DB.Preload("Movies").Find(&actors)
+	// Query to get the count
+	database.DB.Find(&actors, "name LIKE ? AND gender ILIKE ?", "%"+*name+"%", *gender).Count(&count)
+	// Query to get the results
+	database.DB.Limit(pageLimit).Offset((*page-1)*pageLimit).Preload("Movies").Find(&actors, "name LIKE ? AND gender ILIKE ?", "%"+*name+"%", *gender)
 	for _, actor := range actors {
 		var moviesGraph []*model.Movie
 		for _, movie := range actor.Movies {
@@ -100,7 +106,24 @@ func (r *queryResolver) Actors(ctx context.Context, page *int, name *string, gen
 		actor.Movies = moviesGraph
 		actorsGraph = append(actorsGraph, &actor)
 	}
+	totalPages := math.Ceil(float64(count) / float64(pageLimit))
+	var next int
+	var previous int
+	if *page+1 <= int(totalPages) {
+		next = *page + 1
+	}
+	if *page-1 > 0 {
+		previous = *page - 1
+	}
+	var last int = int(totalPages)
+	var countPointer int = int(count)
 	return &model.Actors{
+		Info: &model.Info{
+			Count:    &countPointer,
+			Last:     &last,
+			Next:     &next,
+			Previous: &previous,
+		},
 		Data: actorsGraph,
 	}, nil
 }
