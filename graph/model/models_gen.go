@@ -16,7 +16,8 @@ type Actors struct {
 }
 
 type FilterActor struct {
-	Name *string `json:"name"`
+	Name   *string `json:"name"`
+	Gender *string `json:"gender"`
 }
 
 type FilterMovie struct {

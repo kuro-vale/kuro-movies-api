@@ -25,6 +25,7 @@ input FilterMovie {
 
 input FilterActor {
   name: String
+  gender: String
 }
 
 type Info {

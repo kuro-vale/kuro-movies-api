@@ -405,6 +405,7 @@ input FilterMovie {
 
 input FilterActor {
   name: String
+  gender: String
 }
 
 type Info {
@@ -3793,6 +3794,14 @@ func (ec *executionContext) unmarshalInputFilterActor(ctx context.Context, obj i
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "gender":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gender"))
+			it.Gender, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
