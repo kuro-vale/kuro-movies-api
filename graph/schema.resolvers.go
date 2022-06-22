@@ -15,11 +15,26 @@ import (
 )
 
 func (r *queryResolver) Movie(ctx context.Context, id string) (*model.Movie, error) {
-	panic(fmt.Errorf("not implemented"))
+	var movieGraph model.Movie
+	var movie models.Movie
+	database.DB.Preload("Actors").Find(&movie, "id = ?", id)
+	actorsGraph := nestedActors(movie)
+	movieGraph = movieAssembler(movie)
+	movieGraph.Actors = actorsGraph
+	return &movieGraph, nil
 }
 
 func (r *queryResolver) MoviesByIds(ctx context.Context, ids []string) ([]*model.Movie, error) {
-	panic(fmt.Errorf("not implemented"))
+	var moviesGraph []*model.Movie
+	for _, id := range ids {
+		var movie models.Movie
+		database.DB.Preload("Actors").Find(&movie, "id = ?", id)
+		actorsGraph := nestedActors(movie)
+		movieGraph := movieAssembler(movie)
+		movieGraph.Actors = actorsGraph
+		moviesGraph = append(moviesGraph, &movieGraph)
+	}
+	return moviesGraph, nil
 }
 
 func (r *queryResolver) Movies(ctx context.Context, page *int, title *string, genre *string, director *string, producer *string) (*model.Movies, error) {
@@ -33,18 +48,7 @@ func (r *queryResolver) Movies(ctx context.Context, page *int, title *string, ge
 	// Query to get the results
 	database.DB.Limit(pageLimit).Offset((*page-1)*pageLimit).Preload("Actors").Find(&movies, "title LIKE ? AND genre LIKE ? AND director LIKE ? AND producer LIKE ?", "%"+*title+"%", "%"+*genre+"%", "%"+*director+"%", "%"+*producer+"%")
 	for _, movie := range movies {
-		var actorsGraph []*model.Actor
-		for _, actor := range movie.Actors {
-			var actorMoviesGraph []*model.Movie
-			database.DB.Joins("JOIN public.\"cast\" AS c ON c.actor_id = ? AND c.movie_id = movies.id", actor.ID).Find(&actor.Movies)
-			for _, actorMovie := range actor.Movies {
-				actorMovie := movieAssembler(actorMovie)
-				actorMoviesGraph = append(actorMoviesGraph, &actorMovie)
-			}
-			actor := actorAssembler(actor)
-			actor.Movies = actorMoviesGraph
-			actorsGraph = append(actorsGraph, &actor)
-		}
+		actorsGraph := nestedActors(movie)
 		movie := movieAssembler(movie)
 		movie.Actors = actorsGraph
 		moviesGraph = append(moviesGraph, &movie)
