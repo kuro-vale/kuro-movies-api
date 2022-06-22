@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/kuro-vale/kuro-movies-api/database"
 	"github.com/kuro-vale/kuro-movies-api/graph/model"
@@ -47,4 +48,41 @@ func nestedActors(movie models.Movie) []*model.Actor {
 		actorsGraph = append(actorsGraph, &actor)
 	}
 	return actorsGraph
+}
+
+func nestedMovies(actor models.Actor) []*model.Movie {
+	var moviesGraph []*model.Movie
+	for _, movie := range actor.Movies {
+		var castGraph []*model.Actor
+		database.DB.Joins("JOIN public.\"cast\" AS c ON c.actor_id = actors.id AND c.movie_id = ?", actor.ID).Find(&movie.Actors)
+		for _, movieActor := range movie.Actors {
+			movieActor := actorAssembler(movieActor)
+			castGraph = append(castGraph, &movieActor)
+		}
+		movie := movieAssembler(movie)
+		movie.Actors = castGraph
+		moviesGraph = append(moviesGraph, &movie)
+	}
+	return moviesGraph
+}
+
+func generateInfo(page *int, count int64, pageLimit int) model.Info {
+	totalPages := math.Ceil(float64(count) / float64(pageLimit))
+	var next int
+	var previous int
+	if *page+1 <= int(totalPages) {
+		next = *page + 1
+	}
+	if *page-1 > 0 {
+		previous = *page - 1
+	}
+	var last int = int(totalPages)
+	var countPointer int = int(count)
+	info := &model.Info{
+		Count:    &countPointer,
+		Last:     &last,
+		Next:     &next,
+		Previous: &previous,
+	}
+	return *info
 }

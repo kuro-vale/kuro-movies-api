@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"fmt"
-	"math"
 
 	"github.com/kuro-vale/kuro-movies-api/database"
 	"github.com/kuro-vale/kuro-movies-api/graph/generated"
@@ -53,24 +52,9 @@ func (r *queryResolver) Movies(ctx context.Context, page *int, title *string, ge
 		movie.Actors = actorsGraph
 		moviesGraph = append(moviesGraph, &movie)
 	}
-	totalPages := math.Ceil(float64(count) / float64(pageLimit))
-	var next int
-	var previous int
-	if *page+1 <= int(totalPages) {
-		next = *page + 1
-	}
-	if *page-1 > 0 {
-		previous = *page - 1
-	}
-	var last int = int(totalPages)
-	var countPointer int = int(count)
+	info := generateInfo(page, count, pageLimit)
 	return &model.Movies{
-		Info: &model.Info{
-			Count:    &countPointer,
-			Last:     &last,
-			Next:     &next,
-			Previous: &previous,
-		},
+		Info: &info,
 		Data: moviesGraph,
 	}, nil
 }
@@ -94,40 +78,14 @@ func (r *queryResolver) Actors(ctx context.Context, page *int, name *string, gen
 	// Query to get the results
 	database.DB.Limit(pageLimit).Offset((*page-1)*pageLimit).Preload("Movies").Find(&actors, "name LIKE ? AND gender ILIKE ?", "%"+*name+"%", *gender)
 	for _, actor := range actors {
-		var moviesGraph []*model.Movie
-		for _, movie := range actor.Movies {
-			var castGraph []*model.Actor
-			database.DB.Joins("JOIN public.\"cast\" AS c ON c.actor_id = actors.id AND c.movie_id = ?", actor.ID).Find(&movie.Actors)
-			for _, movieActor := range movie.Actors {
-				movieActor := actorAssembler(movieActor)
-				castGraph = append(castGraph, &movieActor)
-			}
-			movie := movieAssembler(movie)
-			movie.Actors = castGraph
-			moviesGraph = append(moviesGraph, &movie)
-		}
+		moviesGraph := nestedMovies(actor)
 		actor := actorAssembler(actor)
 		actor.Movies = moviesGraph
 		actorsGraph = append(actorsGraph, &actor)
 	}
-	totalPages := math.Ceil(float64(count) / float64(pageLimit))
-	var next int
-	var previous int
-	if *page+1 <= int(totalPages) {
-		next = *page + 1
-	}
-	if *page-1 > 0 {
-		previous = *page - 1
-	}
-	var last int = int(totalPages)
-	var countPointer int = int(count)
+	info := generateInfo(page, count, pageLimit)
 	return &model.Actors{
-		Info: &model.Info{
-			Count:    &countPointer,
-			Last:     &last,
-			Next:     &next,
-			Previous: &previous,
-		},
+		Info: &info,
 		Data: actorsGraph,
 	}, nil
 }
