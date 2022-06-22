@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/kuro-vale/kuro-movies-api/database"
 	"github.com/kuro-vale/kuro-movies-api/graph/generated"
@@ -60,11 +59,26 @@ func (r *queryResolver) Movies(ctx context.Context, page *int, title *string, ge
 }
 
 func (r *queryResolver) Actor(ctx context.Context, id string) (*model.Actor, error) {
-	panic(fmt.Errorf("not implemented"))
+	var actorGraph model.Actor
+	var actor models.Actor
+	database.DB.Preload("Movies").Find(&actor, "id = ?", id)
+	moviesGraph := nestedMovies(actor)
+	actorGraph = actorAssembler(actor)
+	actorGraph.Movies = moviesGraph
+	return &actorGraph, nil
 }
 
 func (r *queryResolver) ActorsByIds(ctx context.Context, ids []string) ([]*model.Actor, error) {
-	panic(fmt.Errorf("not implemented"))
+	var actorsGraph []*model.Actor
+	for _, id := range ids {
+		var actor models.Actor
+		database.DB.Preload("Movies").Find(&actor, "id = ?", id)
+		moviesGraph := nestedMovies(actor)
+		actorGraph := actorAssembler(actor)
+		actorGraph.Movies = moviesGraph
+		actorsGraph = append(actorsGraph, &actorGraph)
+	}
+	return actorsGraph, nil
 }
 
 func (r *queryResolver) Actors(ctx context.Context, page *int, name *string, gender *string) (*model.Actors, error) {

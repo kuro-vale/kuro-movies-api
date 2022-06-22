@@ -54,7 +54,7 @@ func nestedMovies(actor models.Actor) []*model.Movie {
 	var moviesGraph []*model.Movie
 	for _, movie := range actor.Movies {
 		var castGraph []*model.Actor
-		database.DB.Joins("JOIN public.\"cast\" AS c ON c.actor_id = actors.id AND c.movie_id = ?", actor.ID).Find(&movie.Actors)
+		database.DB.Joins("JOIN public.\"cast\" AS c ON c.actor_id = actors.id AND c.movie_id = ?", movie.ID).Find(&movie.Actors)
 		for _, movieActor := range movie.Actors {
 			movieActor := actorAssembler(movieActor)
 			castGraph = append(castGraph, &movieActor)
