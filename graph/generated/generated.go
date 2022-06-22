@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
-	"sync/atomic"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
@@ -51,6 +50,18 @@ type ComplexityRoot struct {
 		Name   func(childComplexity int) int
 	}
 
+	Actors struct {
+		Data func(childComplexity int) int
+		Info func(childComplexity int) int
+	}
+
+	Info struct {
+		Count    func(childComplexity int) int
+		Next     func(childComplexity int) int
+		Pages    func(childComplexity int) int
+		Previous func(childComplexity int) int
+	}
+
 	Movie struct {
 		Actors   func(childComplexity int) int
 		Director func(childComplexity int) int
@@ -61,15 +72,28 @@ type ComplexityRoot struct {
 		Title    func(childComplexity int) int
 	}
 
+	Movies struct {
+		Data func(childComplexity int) int
+		Info func(childComplexity int) int
+	}
+
 	Query struct {
-		Actors func(childComplexity int) int
-		Movies func(childComplexity int) int
+		Actor       func(childComplexity int, id string) int
+		Actors      func(childComplexity int, page *int, filter *model.FilterActor) int
+		ActorsByIds func(childComplexity int, ids []string) int
+		Movie       func(childComplexity int, id string) int
+		Movies      func(childComplexity int, page *int, filter *model.FilterMovie) int
+		MoviesByIds func(childComplexity int, ids []string) int
 	}
 }
 
 type QueryResolver interface {
-	Movies(ctx context.Context) ([]*model.Movie, error)
-	Actors(ctx context.Context) ([]*model.Actor, error)
+	Movie(ctx context.Context, id string) (*model.Movie, error)
+	MoviesByIds(ctx context.Context, ids []string) ([]*model.Movie, error)
+	Movies(ctx context.Context, page *int, filter *model.FilterMovie) (*model.Movies, error)
+	Actor(ctx context.Context, id string) (*model.Actor, error)
+	ActorsByIds(ctx context.Context, ids []string) ([]*model.Actor, error)
+	Actors(ctx context.Context, page *int, filter *model.FilterActor) (*model.Actors, error)
 }
 
 type executableSchema struct {
@@ -122,6 +146,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Actor.Name(childComplexity), true
 
+	case "Actors.data":
+		if e.complexity.Actors.Data == nil {
+			break
+		}
+
+		return e.complexity.Actors.Data(childComplexity), true
+
+	case "Actors.info":
+		if e.complexity.Actors.Info == nil {
+			break
+		}
+
+		return e.complexity.Actors.Info(childComplexity), true
+
+	case "Info.count":
+		if e.complexity.Info.Count == nil {
+			break
+		}
+
+		return e.complexity.Info.Count(childComplexity), true
+
+	case "Info.next":
+		if e.complexity.Info.Next == nil {
+			break
+		}
+
+		return e.complexity.Info.Next(childComplexity), true
+
+	case "Info.pages":
+		if e.complexity.Info.Pages == nil {
+			break
+		}
+
+		return e.complexity.Info.Pages(childComplexity), true
+
+	case "Info.previous":
+		if e.complexity.Info.Previous == nil {
+			break
+		}
+
+		return e.complexity.Info.Previous(childComplexity), true
+
 	case "Movie.actors":
 		if e.complexity.Movie.Actors == nil {
 			break
@@ -171,19 +237,91 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Movie.Title(childComplexity), true
 
+	case "Movies.data":
+		if e.complexity.Movies.Data == nil {
+			break
+		}
+
+		return e.complexity.Movies.Data(childComplexity), true
+
+	case "Movies.info":
+		if e.complexity.Movies.Info == nil {
+			break
+		}
+
+		return e.complexity.Movies.Info(childComplexity), true
+
+	case "Query.actor":
+		if e.complexity.Query.Actor == nil {
+			break
+		}
+
+		args, err := ec.field_Query_actor_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Actor(childComplexity, args["id"].(string)), true
+
 	case "Query.actors":
 		if e.complexity.Query.Actors == nil {
 			break
 		}
 
-		return e.complexity.Query.Actors(childComplexity), true
+		args, err := ec.field_Query_actors_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Actors(childComplexity, args["page"].(*int), args["filter"].(*model.FilterActor)), true
+
+	case "Query.actorsByIds":
+		if e.complexity.Query.ActorsByIds == nil {
+			break
+		}
+
+		args, err := ec.field_Query_actorsByIds_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ActorsByIds(childComplexity, args["ids"].([]string)), true
+
+	case "Query.movie":
+		if e.complexity.Query.Movie == nil {
+			break
+		}
+
+		args, err := ec.field_Query_movie_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Movie(childComplexity, args["id"].(string)), true
 
 	case "Query.movies":
 		if e.complexity.Query.Movies == nil {
 			break
 		}
 
-		return e.complexity.Query.Movies(childComplexity), true
+		args, err := ec.field_Query_movies_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Movies(childComplexity, args["page"].(*int), args["filter"].(*model.FilterMovie)), true
+
+	case "Query.moviesByIds":
+		if e.complexity.Query.MoviesByIds == nil {
+			break
+		}
+
+		args, err := ec.field_Query_moviesByIds_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MoviesByIds(childComplexity, args["ids"].([]string)), true
 
 	}
 	return 0, false
@@ -192,7 +330,10 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e}
-	inputUnmarshalMap := graphql.BuildUnmarshalerMap()
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputFilterActor,
+		ec.unmarshalInputFilterMovie,
+	)
 	first := true
 
 	switch rc.Operation.Operation {
@@ -238,26 +379,58 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 
 var sources = []*ast.Source{
 	{Name: "../schema.graphqls", Input: `type Movie {
-  id: ID!
-  title: String!
-  genre: String!
-  price: String!
-  director: String!
-  producer: String!
-  actors: [Actor]!
+  id: ID
+  title: String
+  genre: String
+  price: String
+  director: String
+  producer: String
+  actors: [Actor]
 }
 
 type Actor {
-  id: ID!
-  name: String!
-  age: Int!
-  gender: String!
-  movies: [Movie]!
+  id: ID
+  name: String
+  age: Int
+  gender: String
+  movies: [Movie]
+}
+
+input FilterMovie {
+  title: String
+  genre: String
+  director: String
+  producer: String
+}
+
+input FilterActor {
+  name: String
+}
+
+type Info {
+  count: Int
+  pages: Int
+  next: Int
+  previous: Int
+}
+
+type Movies {
+  info: Info
+  data: [Movie]
+}
+
+type Actors {
+  info: Info
+  data: [Actor]
 }
 
 type Query {
-  movies: [Movie]!
-  actors: [Actor]!
+  movie(id: ID!): Movie
+  moviesByIds(ids: [ID!]!): [Movie]
+  movies(page: Int, filter: FilterMovie): Movies
+  actor(id: ID!): Actor
+  actorsByIds(ids: [ID!]!): [Actor]
+  actors(page: Int, filter: FilterActor): Actors
 }
 `, BuiltIn: false},
 }
@@ -279,6 +452,114 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_actor_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_actorsByIds_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []string
+	if tmp, ok := rawArgs["ids"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ids"))
+		arg0, err = ec.unmarshalNID2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ids"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_actors_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["page"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["page"] = arg0
+	var arg1 *model.FilterActor
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg1, err = ec.unmarshalOFilterActor2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐFilterActor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_movie_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_moviesByIds_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []string
+	if tmp, ok := rawArgs["ids"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ids"))
+		arg0, err = ec.unmarshalNID2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ids"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_movies_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["page"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["page"] = arg0
+	var arg1 *model.FilterMovie
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg1, err = ec.unmarshalOFilterMovie2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐFilterMovie(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg1
 	return args, nil
 }
 
@@ -341,14 +622,11 @@ func (ec *executionContext) _Actor_id(ctx context.Context, field graphql.Collect
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Actor_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -385,14 +663,11 @@ func (ec *executionContext) _Actor_name(ctx context.Context, field graphql.Colle
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Actor_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -429,14 +704,11 @@ func (ec *executionContext) _Actor_age(ctx context.Context, field graphql.Collec
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(*int)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Actor_age(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -473,14 +745,11 @@ func (ec *executionContext) _Actor_gender(ctx context.Context, field graphql.Col
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Actor_gender(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -517,14 +786,11 @@ func (ec *executionContext) _Actor_movies(ctx context.Context, field graphql.Col
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.([]*model.Movie)
 	fc.Result = res
-	return ec.marshalNMovie2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐMovie(ctx, field.Selections, res)
+	return ec.marshalOMovie2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐMovie(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Actor_movies(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -556,6 +822,274 @@ func (ec *executionContext) fieldContext_Actor_movies(ctx context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _Actors_info(ctx context.Context, field graphql.CollectedField, obj *model.Actors) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Actors_info(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Info, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Info)
+	fc.Result = res
+	return ec.marshalOInfo2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Actors_info(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Actors",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "count":
+				return ec.fieldContext_Info_count(ctx, field)
+			case "pages":
+				return ec.fieldContext_Info_pages(ctx, field)
+			case "next":
+				return ec.fieldContext_Info_next(ctx, field)
+			case "previous":
+				return ec.fieldContext_Info_previous(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Info", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Actors_data(ctx context.Context, field graphql.CollectedField, obj *model.Actors) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Actors_data(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Data, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Actor)
+	fc.Result = res
+	return ec.marshalOActor2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐActor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Actors_data(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Actors",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Actor_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Actor_name(ctx, field)
+			case "age":
+				return ec.fieldContext_Actor_age(ctx, field)
+			case "gender":
+				return ec.fieldContext_Actor_gender(ctx, field)
+			case "movies":
+				return ec.fieldContext_Actor_movies(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Actor", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Info_count(ctx context.Context, field graphql.CollectedField, obj *model.Info) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Info_count(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Count, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Info_count(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Info",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Info_pages(ctx context.Context, field graphql.CollectedField, obj *model.Info) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Info_pages(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Pages, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Info_pages(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Info",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Info_next(ctx context.Context, field graphql.CollectedField, obj *model.Info) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Info_next(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Next, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Info_next(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Info",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Info_previous(ctx context.Context, field graphql.CollectedField, obj *model.Info) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Info_previous(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Previous, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Info_previous(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Info",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Movie_id(ctx context.Context, field graphql.CollectedField, obj *model.Movie) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Movie_id(ctx, field)
 	if err != nil {
@@ -577,14 +1111,11 @@ func (ec *executionContext) _Movie_id(ctx context.Context, field graphql.Collect
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Movie_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -621,14 +1152,11 @@ func (ec *executionContext) _Movie_title(ctx context.Context, field graphql.Coll
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Movie_title(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -665,14 +1193,11 @@ func (ec *executionContext) _Movie_genre(ctx context.Context, field graphql.Coll
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Movie_genre(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -709,14 +1234,11 @@ func (ec *executionContext) _Movie_price(ctx context.Context, field graphql.Coll
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Movie_price(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -753,14 +1275,11 @@ func (ec *executionContext) _Movie_director(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Movie_director(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -797,14 +1316,11 @@ func (ec *executionContext) _Movie_producer(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Movie_producer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -841,14 +1357,11 @@ func (ec *executionContext) _Movie_actors(ctx context.Context, field graphql.Col
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.([]*model.Actor)
 	fc.Result = res
-	return ec.marshalNActor2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐActor(ctx, field.Selections, res)
+	return ec.marshalOActor2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐActor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Movie_actors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -876,8 +1389,8 @@ func (ec *executionContext) fieldContext_Movie_actors(ctx context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_movies(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_movies(ctx, field)
+func (ec *executionContext) _Movies_info(ctx context.Context, field graphql.CollectedField, obj *model.Movies) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Movies_info(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -890,24 +1403,129 @@ func (ec *executionContext) _Query_movies(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Movies(rctx)
+		return obj.Info, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
+		return graphql.Null
+	}
+	res := resTmp.(*model.Info)
+	fc.Result = res
+	return ec.marshalOInfo2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Movies_info(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Movies",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "count":
+				return ec.fieldContext_Info_count(ctx, field)
+			case "pages":
+				return ec.fieldContext_Info_pages(ctx, field)
+			case "next":
+				return ec.fieldContext_Info_next(ctx, field)
+			case "previous":
+				return ec.fieldContext_Info_previous(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Info", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Movies_data(ctx context.Context, field graphql.CollectedField, obj *model.Movies) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Movies_data(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
 		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Data, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
 		return graphql.Null
 	}
 	res := resTmp.([]*model.Movie)
 	fc.Result = res
-	return ec.marshalNMovie2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐMovie(ctx, field.Selections, res)
+	return ec.marshalOMovie2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐMovie(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_movies(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Movies_data(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Movies",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Movie_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Movie_title(ctx, field)
+			case "genre":
+				return ec.fieldContext_Movie_genre(ctx, field)
+			case "price":
+				return ec.fieldContext_Movie_price(ctx, field)
+			case "director":
+				return ec.fieldContext_Movie_director(ctx, field)
+			case "producer":
+				return ec.fieldContext_Movie_producer(ctx, field)
+			case "actors":
+				return ec.fieldContext_Movie_actors(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Movie", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_movie(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_movie(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Movie(rctx, fc.Args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Movie)
+	fc.Result = res
+	return ec.marshalOMovie2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐMovie(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_movie(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -933,11 +1551,22 @@ func (ec *executionContext) fieldContext_Query_movies(ctx context.Context, field
 			return nil, fmt.Errorf("no field named %q was found under type Movie", field.Name)
 		},
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_movie_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_actors(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_actors(ctx, field)
+func (ec *executionContext) _Query_moviesByIds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_moviesByIds(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -950,24 +1579,147 @@ func (ec *executionContext) _Query_actors(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Actors(rctx)
+		return ec.resolvers.Query().MoviesByIds(rctx, fc.Args["ids"].([]string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Actor)
+	res := resTmp.([]*model.Movie)
 	fc.Result = res
-	return ec.marshalNActor2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐActor(ctx, field.Selections, res)
+	return ec.marshalOMovie2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐMovie(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_actors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_moviesByIds(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Movie_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Movie_title(ctx, field)
+			case "genre":
+				return ec.fieldContext_Movie_genre(ctx, field)
+			case "price":
+				return ec.fieldContext_Movie_price(ctx, field)
+			case "director":
+				return ec.fieldContext_Movie_director(ctx, field)
+			case "producer":
+				return ec.fieldContext_Movie_producer(ctx, field)
+			case "actors":
+				return ec.fieldContext_Movie_actors(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Movie", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_moviesByIds_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_movies(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_movies(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Movies(rctx, fc.Args["page"].(*int), fc.Args["filter"].(*model.FilterMovie))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Movies)
+	fc.Result = res
+	return ec.marshalOMovies2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐMovies(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_movies(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "info":
+				return ec.fieldContext_Movies_info(ctx, field)
+			case "data":
+				return ec.fieldContext_Movies_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Movies", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_movies_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_actor(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_actor(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Actor(rctx, fc.Args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Actor)
+	fc.Result = res
+	return ec.marshalOActor2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐActor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_actor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -988,6 +1740,139 @@ func (ec *executionContext) fieldContext_Query_actors(ctx context.Context, field
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Actor", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_actor_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_actorsByIds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_actorsByIds(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ActorsByIds(rctx, fc.Args["ids"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Actor)
+	fc.Result = res
+	return ec.marshalOActor2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐActor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_actorsByIds(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Actor_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Actor_name(ctx, field)
+			case "age":
+				return ec.fieldContext_Actor_age(ctx, field)
+			case "gender":
+				return ec.fieldContext_Actor_gender(ctx, field)
+			case "movies":
+				return ec.fieldContext_Actor_movies(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Actor", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_actorsByIds_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_actors(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_actors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Actors(rctx, fc.Args["page"].(*int), fc.Args["filter"].(*model.FilterActor))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Actors)
+	fc.Result = res
+	return ec.marshalOActors2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐActors(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_actors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "info":
+				return ec.fieldContext_Actors_info(ctx, field)
+			case "data":
+				return ec.fieldContext_Actors_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Actors", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_actors_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -2894,6 +3779,76 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputFilterActor(ctx context.Context, obj interface{}) (model.FilterActor, error) {
+	var it model.FilterActor
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFilterMovie(ctx context.Context, obj interface{}) (model.FilterMovie, error) {
+	var it model.FilterMovie
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "title":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			it.Title, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "genre":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("genre"))
+			it.Genre, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "director":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("director"))
+			it.Director, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "producer":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("producer"))
+			it.Producer, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -2916,37 +3871,88 @@ func (ec *executionContext) _Actor(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Values[i] = ec._Actor_id(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "name":
 
 			out.Values[i] = ec._Actor_name(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "age":
 
 			out.Values[i] = ec._Actor_age(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "gender":
 
 			out.Values[i] = ec._Actor_gender(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "movies":
 
 			out.Values[i] = ec._Actor_movies(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var actorsImplementors = []string{"Actors"}
+
+func (ec *executionContext) _Actors(ctx context.Context, sel ast.SelectionSet, obj *model.Actors) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, actorsImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Actors")
+		case "info":
+
+			out.Values[i] = ec._Actors_info(ctx, field, obj)
+
+		case "data":
+
+			out.Values[i] = ec._Actors_data(ctx, field, obj)
+
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var infoImplementors = []string{"Info"}
+
+func (ec *executionContext) _Info(ctx context.Context, sel ast.SelectionSet, obj *model.Info) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, infoImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Info")
+		case "count":
+
+			out.Values[i] = ec._Info_count(ctx, field, obj)
+
+		case "pages":
+
+			out.Values[i] = ec._Info_pages(ctx, field, obj)
+
+		case "next":
+
+			out.Values[i] = ec._Info_next(ctx, field, obj)
+
+		case "previous":
+
+			out.Values[i] = ec._Info_previous(ctx, field, obj)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2972,51 +3978,59 @@ func (ec *executionContext) _Movie(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Values[i] = ec._Movie_id(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "title":
 
 			out.Values[i] = ec._Movie_title(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "genre":
 
 			out.Values[i] = ec._Movie_genre(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "price":
 
 			out.Values[i] = ec._Movie_price(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "director":
 
 			out.Values[i] = ec._Movie_director(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "producer":
 
 			out.Values[i] = ec._Movie_producer(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "actors":
 
 			out.Values[i] = ec._Movie_actors(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var moviesImplementors = []string{"Movies"}
+
+func (ec *executionContext) _Movies(ctx context.Context, sel ast.SelectionSet, obj *model.Movies) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, moviesImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Movies")
+		case "info":
+
+			out.Values[i] = ec._Movies_info(ctx, field, obj)
+
+		case "data":
+
+			out.Values[i] = ec._Movies_data(ctx, field, obj)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3047,6 +4061,46 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
+		case "movie":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_movie(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "moviesByIds":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_moviesByIds(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "movies":
 			field := field
 
@@ -3057,9 +4111,46 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_movies(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "actor":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_actor(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "actorsByIds":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_actorsByIds(ctx, field)
 				return res
 			}
 
@@ -3080,9 +4171,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_actors(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			}
 
@@ -3434,44 +4522,6 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) marshalNActor2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐActor(ctx context.Context, sel ast.SelectionSet, v []*model.Actor) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOActor2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐActor(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	return ret
-}
-
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3502,55 +4552,34 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
-	res, err := graphql.UnmarshalInt(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
-	res := graphql.MarshalInt(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+func (ec *executionContext) unmarshalNID2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
 		}
 	}
-	return res
+	return res, nil
 }
 
-func (ec *executionContext) marshalNMovie2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐMovie(ctx context.Context, sel ast.SelectionSet, v []*model.Movie) graphql.Marshaler {
+func (ec *executionContext) marshalNID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
 	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOMovie2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐMovie(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
 	}
-	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
 
 	return ret
 }
@@ -3823,11 +4852,59 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) marshalOActor2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐActor(ctx context.Context, sel ast.SelectionSet, v []*model.Actor) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOActor2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐActor(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
 func (ec *executionContext) marshalOActor2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐActor(ctx context.Context, sel ast.SelectionSet, v *model.Actor) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Actor(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOActors2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐActors(ctx context.Context, sel ast.SelectionSet, v *model.Actors) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Actors(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
@@ -3856,11 +4933,114 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) unmarshalOFilterActor2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐFilterActor(ctx context.Context, v interface{}) (*model.FilterActor, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFilterActor(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOFilterMovie2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐFilterMovie(ctx context.Context, v interface{}) (*model.FilterMovie, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFilterMovie(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalID(*v)
+	return res
+}
+
+func (ec *executionContext) marshalOInfo2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐInfo(ctx context.Context, sel ast.SelectionSet, v *model.Info) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Info(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalInt(*v)
+	return res
+}
+
+func (ec *executionContext) marshalOMovie2ᚕᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐMovie(ctx context.Context, sel ast.SelectionSet, v []*model.Movie) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOMovie2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐMovie(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
 func (ec *executionContext) marshalOMovie2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐMovie(ctx context.Context, sel ast.SelectionSet, v *model.Movie) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Movie(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOMovies2ᚖgithubᚗcomᚋkuroᚑvaleᚋkuroᚑmoviesᚑapiᚋgraphᚋmodelᚐMovies(ctx context.Context, sel ast.SelectionSet, v *model.Movies) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Movies(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

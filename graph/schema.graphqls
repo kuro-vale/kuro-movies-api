@@ -1,22 +1,54 @@
 type Movie {
-  id: ID!
-  title: String!
-  genre: String!
-  price: String!
-  director: String!
-  producer: String!
-  actors: [Actor]!
+  id: ID
+  title: String
+  genre: String
+  price: String
+  director: String
+  producer: String
+  actors: [Actor]
 }
 
 type Actor {
-  id: ID!
-  name: String!
-  age: Int!
-  gender: String!
-  movies: [Movie]!
+  id: ID
+  name: String
+  age: Int
+  gender: String
+  movies: [Movie]
+}
+
+input FilterMovie {
+  title: String
+  genre: String
+  director: String
+  producer: String
+}
+
+input FilterActor {
+  name: String
+}
+
+type Info {
+  count: Int
+  pages: Int
+  next: Int
+  previous: Int
+}
+
+type Movies {
+  info: Info
+  data: [Movie]
+}
+
+type Actors {
+  info: Info
+  data: [Actor]
 }
 
 type Query {
-  movies: [Movie]!
-  actors: [Actor]!
+  movie(id: ID!): Movie
+  moviesByIds(ids: [ID!]!): [Movie]
+  movies(page: Int, filter: FilterMovie): Movies
+  actor(id: ID!): Actor
+  actorsByIds(ids: [ID!]!): [Actor]
+  actors(page: Int, filter: FilterActor): Actors
 }

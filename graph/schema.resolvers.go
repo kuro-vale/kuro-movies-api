@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"unsafe"
 
 	"github.com/kuro-vale/kuro-movies-api/database"
 	"github.com/kuro-vale/kuro-movies-api/graph/generated"
@@ -13,52 +14,76 @@ import (
 	"github.com/kuro-vale/kuro-movies-api/models"
 )
 
-func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
-	var response []*model.Movie
+func (r *queryResolver) Movie(ctx context.Context, id string) (*model.Movie, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) MoviesByIds(ctx context.Context, ids []string) ([]*model.Movie, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) Movies(ctx context.Context, page *int, filter *model.FilterMovie) (*model.Movies, error) {
+	var moviesGraph []*model.Movie
 	var movies []models.Movie
 	database.DB.Preload("Actors").Find(&movies)
 	for _, movie := range movies {
-		var actors []*model.Actor
+		var actorsGraph []*model.Actor
 		for _, actor := range movie.Actors {
-			var actorMovies []*model.Movie
+			var actorMoviesGraph []*model.Movie
 			database.DB.Joins("JOIN public.\"cast\" AS c ON c.actor_id = ? AND c.movie_id = movies.id", actor.ID).Find(&actor.Movies)
 			for _, actorMovie := range actor.Movies {
 				actorMovie := movieAssembler(actorMovie)
-				actorMovies = append(actorMovies, &actorMovie)
+				actorMoviesGraph = append(actorMoviesGraph, &actorMovie)
 			}
 			actor := actorAssembler(actor)
-			actor.Movies = actorMovies
-			actors = append(actors, &actor)
+			actor.Movies = actorMoviesGraph
+			actorsGraph = append(actorsGraph, &actor)
 		}
 		movie := movieAssembler(movie)
-		movie.Actors = actors
-		response = append(response, &movie)
+		movie.Actors = actorsGraph
+		moviesGraph = append(moviesGraph, &movie)
 	}
-	return response, nil
+	count := 2
+	return &model.Movies{
+		Info: &model.Info{
+			Count: &count,
+		},
+		Data: moviesGraph,
+	}, nil
 }
 
-func (r *queryResolver) Actors(ctx context.Context) ([]*model.Actor, error) {
-	var response []*model.Actor
+func (r *queryResolver) Actor(ctx context.Context, id string) (*model.Actor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) ActorsByIds(ctx context.Context, ids []string) ([]*model.Actor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) Actors(ctx context.Context, page *int, filter *model.FilterActor) (*model.Actors, error) {
+	var actorsGraph []*model.Actor
 	var actors []models.Actor
 	database.DB.Preload("Movies").Find(&actors)
 	for _, actor := range actors {
-		var movies []*model.Movie
+		var moviesGraph []*model.Movie
 		for _, movie := range actor.Movies {
-			var cast []*model.Actor
+			var castGraph []*model.Actor
 			database.DB.Joins("JOIN public.\"cast\" AS c ON c.actor_id = actors.id AND c.movie_id = ?", actor.ID).Find(&movie.Actors)
 			for _, movieActor := range movie.Actors {
 				movieActor := actorAssembler(movieActor)
-				cast = append(cast, &movieActor)
+				castGraph = append(castGraph, &movieActor)
 			}
 			movie := movieAssembler(movie)
-			movie.Actors = cast
-			movies = append(movies, &movie)
+			movie.Actors = castGraph
+			moviesGraph = append(moviesGraph, &movie)
 		}
 		actor := actorAssembler(actor)
-		actor.Movies = movies
-		response = append(response, &actor)
+		actor.Movies = moviesGraph
+		actorsGraph = append(actorsGraph, &actor)
 	}
-	return response, nil
+	return &model.Actors{
+		Data: actorsGraph,
+	}, nil
 }
 
 // Query returns generated.QueryResolver implementation.
@@ -67,23 +92,25 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 type queryResolver struct{ *Resolver }
 
 func movieAssembler(movie models.Movie) model.Movie {
+	id := fmt.Sprint(movie.ID)
 	movieGraph := model.Movie{
-		ID:       fmt.Sprint(movie.ID),
-		Title:    movie.Title,
-		Genre:    movie.Genre,
-		Price:    movie.Price,
-		Director: movie.Director,
-		Producer: movie.Producer,
+		ID:       &id,
+		Title:    &movie.Title,
+		Genre:    &movie.Genre,
+		Price:    &movie.Price,
+		Director: &movie.Director,
+		Producer: &movie.Producer,
 	}
 	return movieGraph
 }
 
 func actorAssembler(actor models.Actor) model.Actor {
+	id := fmt.Sprint(actor.ID)
 	actorGraph := model.Actor{
-		ID:     fmt.Sprint(actor.ID),
-		Name:   actor.Name,
-		Age:    int(actor.Age),
-		Gender: actor.Gender,
+		ID:     &id,
+		Name:   &actor.Name,
+		Age:    (*int)(unsafe.Pointer(&actor.Age)),
+		Gender: &actor.Gender,
 	}
 	return actorGraph
 }
