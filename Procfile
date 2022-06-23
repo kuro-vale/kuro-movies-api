@@ -1,0 +1,1 @@
+web: bin/kuro-movies-api
