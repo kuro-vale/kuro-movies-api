@@ -88,9 +88,9 @@ func (r *queryResolver) Actors(ctx context.Context, page *int, name *string, gen
 	var actorsGraph []*model.Actor
 	var actors []models.Actor
 	// Query to get the count
-	database.DB.Find(&actors, "name LIKE ? AND gender ILIKE ?", "%"+*name+"%", *gender).Count(&count)
+	database.DB.Find(&actors, "name LIKE ? AND gender ILIKE ?", "%"+*name+"%", *gender+"%").Count(&count)
 	// Query to get the results
-	database.DB.Limit(pageLimit).Offset((*page-1)*pageLimit).Preload("Movies").Find(&actors, "name LIKE ? AND gender ILIKE ?", "%"+*name+"%", *gender)
+	database.DB.Limit(pageLimit).Offset((*page-1)*pageLimit).Preload("Movies").Find(&actors, "name LIKE ? AND gender ILIKE ?", "%"+*name+"%", *gender+"%")
 	for _, actor := range actors {
 		moviesGraph := nestedMovies(actor)
 		actor := actorAssembler(actor)
