@@ -53,5 +53,11 @@ func main() {
 	router.GET("/graph", handlers.PlaygroundHandler())
 	router.POST("/graph", handlers.GraphqlHandler())
 
+	// Home
+	router.LoadHTMLFiles("static/home.html")
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(200, "home.html", nil)
+	})
+
 	router.Run("localhost:" + port)
 }
