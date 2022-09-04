@@ -18,6 +18,10 @@ See the [DOCS](https://documenter.getpostman.com/view/20195671/UzBpLRz8)
 
 [![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/20195671-8e639575-089c-415a-b082-f2a4d23f0469?action=collection%2Ffork&collection-url=entityId%3D20195671-8e639575-089c-415a-b082-f2a4d23f0469%26entityType%3Dcollection%26workspaceId%3D340d12f8-bfd8-4f84-8bc7-f3b080c24682)
 
+## Docker image
+
+You can run this project with the [docker image](https://hub.docker.com/r/kurovale/kuro-movies) I made.
+
 ### Quick Setup
 
 1. ```git clone https://github.com/kuro-vale/kuro-movies-api.git```

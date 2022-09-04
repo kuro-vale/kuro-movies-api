@@ -59,5 +59,5 @@ func main() {
 		c.HTML(200, "home.html", nil)
 	})
 
-	router.Run("localhost:" + port)
+	router.Run(":" + port)
 }
